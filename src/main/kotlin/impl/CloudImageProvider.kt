@@ -12,17 +12,31 @@ import me.gsycl2004.interfaces.NovelAiProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import java.awt.image.BufferedImage
+import java.io.ByteArrayInputStream
 import java.util.*
+import java.util.concurrent.TimeUnit
+import javax.imageio.ImageIO
+/*
+width  = height
+768         x
+
+ */
 
 class CloudImageProvider:NovelAiProvider {
     private val gson = Gson()
-    private val okhttp = OkHttpClient.Builder().build()
+    private val okhttp = OkHttpClient.Builder().apply {
+        connectTimeout(30, TimeUnit.SECONDS)
+        callTimeout(30,TimeUnit.SECONDS)
+    }.build()
 
     override fun generateImage(source: ImageSource, config:Config): ByteArray {
         return callApi(source, modelType = config.userModel){
-            width = config.width
-            height = config.height
+            val image:BufferedImage? =  if(source.image != null) ImageIO.read(ByteArrayInputStream(source.image)) else null
+            width = if(source.image == null) config.width  else 768
+            height = if(source.image == null) config.height  else (768/image!!.width) * image.height
         }
+
     }
 
     private fun PostData.toJsonString(): String = gson.toJson(this)
